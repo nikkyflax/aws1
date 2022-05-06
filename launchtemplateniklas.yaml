@@ -9,7 +9,7 @@ Parameters:
     Type: String
     Description: Choosing t2 micro because it is free
     Default: t2.micro
-  KeyName:
+  Key1:
     Description: SSH Keypair to login to the instance
     Type: AWS::EC2::KeyPair::KeyName
     Default: key1
@@ -17,7 +17,7 @@ Parameters:
 
 AWSTemplateFormatVersion: 2010-09-09
 Resources:
-  LaunchTemplate-n:
+  LaunchTemplateNiklas:
     Type: 'AWS::EC2::LaunchTemplate'
     Properties:
       LaunchTemplateName: !Sub '${AWS::StackName}-launch-template-for-auto-scaling'
@@ -33,4 +33,24 @@ Resources:
           Tenancy: dedicated
         ImageId: !Ref ImageId
         InstanceType: !Ref InstanceType
-        KeyName: !Ref KeyName
+        KeyName: !Ref Key1
+  
+
+  HTTPSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: SG to allow HTTP access via port 80
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+  SSHSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: SG to allow SSH access via port 22
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: '0.0.0.0/0'
