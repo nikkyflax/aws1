@@ -25,30 +25,11 @@ Parameters:
     Description: Subnet1 ID
     Type: String
     Default: subnet-0a59b2fb9b98b7bc7
-  ASG1:
-    Description: Name of the Autoscaling Group
-    Type: String
-    Default: AutoscalingGroup1
-  LB1:
-    Description: Name of the LoadBalancer
-    Type: String
-    Default: LoadBalancer1
   VPCID:
     Description: VPC ID
     Type: String
     Default: vpc-0e255d330e11af1f4
-  TG1:
-    Description: Name of the Target Group
-    Type: String
-    Default: TargetGroup1
-  LR:
-    Description: Name of Listener Rule 1
-    Type: String
-    Default: ListenerRule1
-  L1:
-    Description: Name of Listener 1
-    Type: String
-    Default: Listener1    
+  
 AWSTemplateFormatVersion: 2010-09-09
 Resources:
   LaunchTemplateNiklas:
@@ -155,34 +136,3 @@ Resources:
       LoadBalancerArn: !Ref LoadBalancer1
       Port: 80
       Protocol: HTTP
-  
-  # ListenerRule1:
-  #   Type: AWS::ElasticLoadBalancingV2::ListenerRule
-  #   Properties:
-  #     Priority: 1
-  #     ListernerArn: !Ref Listener1
-  #     Conditions:
-  #       - 
-          
-      
-      
-  #     Actions:
-  #       - Type: forward
-  #         ForwardConfig:
-  #           TargetGroups:
-  #             - TargetGroupArn: !Ref TargetGroup1
-  #               Weight: 1
-     
-  #     ListernerArn: !Ref Listener1
-  #     Priority: 1
-      
-      
-  # ASGScalingPolicyHigh: 
-  #   Type: AWS::AutoScaling::ScalingPolicy
-  #   Properties: 
-  #     AutoScalingGroupName: !Ref ASG1
-  #     PolicyType: "SimpleScaling"
-  #     AdjustmentType: "ChangeInCapacity"
-  #     ScalingAdjustment: 1
-  
-  
