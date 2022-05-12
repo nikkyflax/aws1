@@ -1,0 +1,188 @@
+---
+
+Parameters:
+  ImageId:
+    Type: String
+    Description: 'Linux 2 AMI for Ireland eu-west1 Region'
+    Default: 'ami-0c1bc246476a5572b'
+  InstanceType:
+    Type: String
+    Description: Choosing t2 micro because it is free
+    Default: t2.micro
+  Key1:
+    Description: SSH Keypair to login to the instance
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: key1
+  Snet1:
+    Description: Subnet1 ID
+    Type: String
+    Default: subnet-00a52f2365b335e45
+  Snet2:
+    Description: Subnet1 ID
+    Type: String
+    Default: subnet-06214732dec4ac159	
+  Snet3:
+    Description: Subnet1 ID
+    Type: String
+    Default: subnet-0a59b2fb9b98b7bc7
+  VPCID:
+    Description: VPC ID
+    Type: String
+    Default: vpc-0e255d330e11af1f4
+  
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  LaunchTemplateNiklas:
+    Type: 'AWS::EC2::LaunchTemplate'
+    Properties:
+      LaunchTemplateName: !Sub '${AWS::StackName}-launch-template-for-auto-scaling'
+      LaunchTemplateData:
+        SecurityGroupIds:
+          - !GetAtt HTTPSecGroup.GroupId
+          - !GetAtt SSHSecGroup.GroupId
+        ImageId: !Ref ImageId
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref Key1
+        UserData:
+          Fn::Base64: 
+            !Sub |
+              #!/bin/bash
+              yum update -y
+              amazon-linux-extras install nginx1 -y
+              systemctl start nginx
+              systemctl enable nginx
+              echo Detta är en Nginx server skapad av NIKLAS. Den är ONLINE tillsammans med en AutoScalingGroup, Load Balancer och TargetGroup from $(hostname -f) > /usr/share/nginx/html/index.html
+
+  HTTPSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: SG to allow HTTP access via port 80
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+  HTTPSecGroupFrontend:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: SG to allow HTTP access via port 80 on LB
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0        
+  SSHSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: SG to allow SSH access via port 22
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: '0.0.0.0/0'
+          
+  AutoscalingGroup1:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplateNiklas
+        Version: !GetAtt LaunchTemplateNiklas.LatestVersionNumber
+      TargetGroupARNs: 
+        - !Ref TargetGroup1 
+      MaxSize: '3'
+      MinSize: '1'
+      DesiredCapacity: '1'
+      VPCZoneIdentifier:   
+        - !Ref Snet1
+        - !Ref Snet2
+        - !Ref Snet3
+      MetricsCollection: 
+        - Granularity: "1Minute"
+          Metrics: 
+            - "GroupMinSize"
+            - "GroupMaxSize"
+  
+  minScaleUpPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName:
+        Ref: AutoscalingGroup1
+      Cooldown: '60'
+      ScalingAdjustment: '1'
+  minScaleDownPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName:
+        Ref: AutoscalingGroup1
+      Cooldown: '60'
+      ScalingAdjustment: "-1"
+  CPUAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Scale-up if CPU > 80% for 5 minutes
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: '300'
+      EvaluationPeriods: '1'
+      Threshold: '80'
+      AlarmActions:
+      - Ref: minScaleUpPolicy
+      Dimensions:
+      - Name: AutoScalingGroupName
+        Value:
+          Ref: AutoscalingGroup1
+      ComparisonOperator: GreaterThanThreshold
+  CPUAlarmLow:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Scale-down if CPU < 70% for 5 minutes
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: '300'
+      EvaluationPeriods: '1'
+      Threshold: '70'
+      AlarmActions:
+      - Ref: minScaleDownPolicy
+      Dimensions:
+      - Name: AutoScalingGroupName
+        Value:
+          Ref: AutoscalingGroup1
+      ComparisonOperator: LessThanThreshold
+ 
+
+  LoadBalancer1:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties: 
+      IpAddressType: ipv4
+      Name: LB1
+      SecurityGroups: 
+        - !GetAtt HTTPSecGroupFrontend.GroupId
+      Subnets: 
+        - !Ref Snet1
+        - !Ref Snet2
+        - !Ref Snet3
+      Type: application
+      Scheme: internet-facing
+  
+  TargetGroup1:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      IpAddressType: ipv4
+      Name: TG1
+      Protocol: HTTP
+      Port: 80
+      VpcId: !Ref VPCID
+  
+  Listener1:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup1
+      LoadBalancerArn: !Ref LoadBalancer1
+      Port: 80
+      Protocol: HTTP
