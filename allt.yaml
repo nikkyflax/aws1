@@ -1,47 +1,49 @@
 ---
-
+#Parameters for Resource creations
 Parameters:
-  ImageId:
-    Type: String
+  ImageId: #ImageID parameter
+    Type: String #Type of parameter
     Description: 'Linux 2 AMI for Ireland eu-west1 Region'
-    Default: 'ami-0c1bc246476a5572b'
-  InstanceType:
-    Type: String
+    Default: 'ami-0c1bc246476a5572b' #ID of the AMI 
+  InstanceType: #InstanceType parameter
+    Type: String #Type of parameter
     Description: Choosing t2 micro because it is free
-    Default: t2.micro
-  Key1:
+    Default: t2.micro #Type of Instance
+  Key1: #Key pair Parameter 
     Description: SSH Keypair to login to the instance
-    Type: AWS::EC2::KeyPair::KeyName
-    Default: key1
-  Snet1:
+    Type: AWS::EC2::KeyPair::KeyName #Type of parameter
+    Default: key1 #Name of the Key pair
+  Snet1: #SubnetID parameter
     Description: Subnet1 ID
-    Type: String
-    Default: subnet-00a52f2365b335e45
-  Snet2:
+    Type: String #Type of parameter
+    Default: subnet-00a52f2365b335e45 #SubnetID
+  Snet2: #SubnetID parameter
     Description: Subnet1 ID
-    Type: String
-    Default: subnet-06214732dec4ac159	
-  Snet3:
+    Type: String #Type of parameter
+    Default: subnet-06214732dec4ac159	#SubnetID
+  Snet3: #SubnetID parameter
     Description: Subnet1 ID
-    Type: String
-    Default: subnet-0a59b2fb9b98b7bc7
-  VPCID:
+    Type: String #Type of parameter
+    Default: subnet-0a59b2fb9b98b7bc7 #SubnetID
+  VPCID: #VPCID parameter
     Description: VPC ID
-    Type: String
-    Default: vpc-0e255d330e11af1f4
-  
+    Type: String #Type of parameter
+    Default: vpc-0e255d330e11af1f4 #VPCID
+
+
+#Resource creations  
 AWSTemplateFormatVersion: 2010-09-09
-Resources:
-  LaunchTemplateNiklas:
-    Type: 'AWS::EC2::LaunchTemplate'
-    Properties:
-      LaunchTemplateName: !Sub '${AWS::StackName}-launch-template-for-auto-scaling'
-      LaunchTemplateData:
-        SecurityGroupIds:
-          - !GetAtt HTTPSecGroup.GroupId
-          - !GetAtt SSHSecGroup.GroupId
-        ImageId: !Ref ImageId
-        InstanceType: !Ref InstanceType
+Resources: 
+  LaunchTemplateNiklas: #Creates a Launch Template for use in an autoscaling group
+    Type: 'AWS::EC2::LaunchTemplate' #Type of Resource
+    Properties: #Properties of the creating of the Launch Template
+      LaunchTemplateName: !Sub '${AWS::StackName}-launch-template-for-auto-scaling' #The name of the Launch Template, it will take the stackname and add "-launch-template-for-auto-scaling"
+      LaunchTemplateData: 
+        SecurityGroupIds: #Specifys the Security Groups the Launch Template will use
+          - !GetAtt HTTPSecGroup.GroupId #Gets the ID of from the HTTPSecGroup
+          - !GetAtt SSHSecGroup.GroupId #Gets the ID of from the SSHSecGroup
+        ImageId: !Ref ImageId # Refers to and uses the ImageID parameter
+        InstanceType: !Ref InstanceType #Refers to and uses the InstanceType parameter
         KeyName: !Ref Key1
         UserData:
           Fn::Base64: 
@@ -58,10 +60,11 @@ Resources:
     Properties:
       GroupDescription: SG to allow HTTP access via port 80
       SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
+        IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        SourceSecurityGroupName: !Ref HTTPSecGroupFrontend
+          
   HTTPSecGroupFrontend:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
