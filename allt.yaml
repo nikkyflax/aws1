@@ -54,7 +54,7 @@ Resources:
               amazon-linux-extras install nginx1 -y
               systemctl start nginx
               systemctl enable nginx
-              echo Detta är en Nginx server skapad av NIKLAS. Den är ONLINE tillsammans med en AutoScalingGroup, Load Balancer och TargetGroup from $(hostname -f) > /usr/share/nginx/html/index.html
+              echo This is a webapplication created by NIKLAS ANDERSSON from $(hostname -f) > /usr/share/nginx/html/index.html
 
 #Creates a Security Group which will be used by the created EC2 instances and set to only allow ingress traffic from the HTTPSecGroupFrontend Security Group
   HTTPSecGroup:
